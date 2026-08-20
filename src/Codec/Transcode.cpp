@@ -12,13 +12,13 @@
 #if !defined(_WIN32)
 #include <dlfcn.h>
 #endif
+#include "Common/config.h"
+#include "Extension/Factory.h"
+#include "Transcode.h"
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
 #include <float.h>
-#include "Transcode.h"
-#include "Common/config.h"
-#include "Extension/Factory.h"
 
 #define ADTS_HEADER_LEN 7
 #define MAX_DELAY_SECOND 3
@@ -67,7 +67,7 @@ static bool setupFFmpeg_l() {
     avcodec_register_all();
 #endif
     InfoL << "libavcodec " << LIBAVCODEC_VERSION_MAJOR << "." << LIBAVCODEC_VERSION_MINOR;
-    //InfoL << "libavformat " << LIBAVFORMAT_VERSION_MAJOR << "." << LIBAVFORMAT_VERSION_MINOR;
+    // InfoL << "libavformat " << LIBAVFORMAT_VERSION_MAJOR << "." << LIBAVFORMAT_VERSION_MINOR;
     InfoL << "libavutil " << LIBAVUTIL_VERSION_MAJOR << "." << LIBAVUTIL_VERSION_MAJOR;
     return true;
 }
@@ -90,15 +90,18 @@ static bool checkIfSupportedNvidia_l() {
     dlclose(so);
 
     bool find_driver = false;
-    File::scanDir("/dev", [&](const string &path, bool is_dir) {
-        if (!is_dir && start_with(path, "/dev/nvidia")) {
-            // 找到nvidia的驱动  [AUTO-TRANSLATED:5b87bf81]
-            // Find the Nvidia driver
-            find_driver = true;
-            return false;
-        }
-        return true;
-    }, false);
+    File::scanDir(
+        "/dev",
+        [&](const string &path, bool is_dir) {
+            if (!is_dir && start_with(path, "/dev/nvidia")) {
+                // 找到nvidia的驱动  [AUTO-TRANSLATED:5b87bf81]
+                // Find the Nvidia driver
+                find_driver = true;
+                return false;
+            }
+            return true;
+        },
+        false);
 
     if (!find_driver) {
         WarnL << "英伟达硬件编解码器驱动文件 /dev/nvidia* 不存在";
@@ -157,9 +160,7 @@ void TaskManager::setMaxTaskSize(size_t size) {
 }
 
 void TaskManager::startThread(const string &name) {
-    _thread.reset(new thread([this, name]() {
-        onThreadRun(name);
-    }), [](thread *ptr) {
+    _thread.reset(new thread([this, name]() { onThreadRun(name); }), [](thread *ptr) {
         if (ptr->joinable()) {
             ptr->join();
         }
@@ -178,9 +179,7 @@ void TaskManager::stopThread(bool drop_task) {
             _exit = true;
             _task.clear();
         }
-        _task.emplace_back([]() {
-            throw ThreadExitException();
-        });
+        _task.emplace_back([]() { throw ThreadExitException(); });
     }
     _sem.post(10);
     _thread = nullptr;
@@ -232,14 +231,11 @@ FFmpegFrame::FFmpegFrame(std::shared_ptr<AVFrame> frame) {
     if (frame) {
         _frame = std::move(frame);
     } else {
-        _frame.reset(av_frame_alloc(), [](AVFrame *ptr) {
-            av_frame_free(&ptr);
-        });
+        _frame.reset(av_frame_alloc(), [](AVFrame *ptr) { av_frame_free(&ptr); });
     }
 }
 
-FFmpegFrame::~FFmpegFrame() {
-}
+FFmpegFrame::~FFmpegFrame() { }
 
 AVFrame *FFmpegFrame::get() const {
     return _frame.get();
@@ -252,7 +248,8 @@ void FFmpegFrame::fillPicture(AVPixelFormat target_format, int target_width, int
 }
 
 int FFmpegFrame::getChannels() const {
-    if (!_frame) return 0;
+    if (!_frame)
+        return 0;
 #if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
     return _frame->ch_layout.nb_channels;
 #else
@@ -270,7 +267,7 @@ void FFmpegFrame::reset() {
 
 ///////////////////////////////////////////////////////////////////////////
 
-template<bool decoder = true>
+template <bool decoder = true>
 static inline const AVCodec *getCodec_l(const char *name) {
     auto codec = decoder ? avcodec_find_decoder_by_name(name) : avcodec_find_encoder_by_name(name);
     if (codec) {
@@ -281,7 +278,7 @@ static inline const AVCodec *getCodec_l(const char *name) {
     return codec;
 }
 
-template<bool decoder = true>
+template <bool decoder = true>
 static inline const AVCodec *getCodec_l(enum AVCodecID id) {
     auto codec = decoder ? avcodec_find_decoder(id) : avcodec_find_encoder(id);
     if (codec) {
@@ -294,8 +291,10 @@ static inline const AVCodec *getCodec_l(enum AVCodecID id) {
 
 class CodecName {
 public:
-    CodecName(string name) : _codec_name(std::move(name)) {}
-    CodecName(enum AVCodecID id) : _id(id) {}
+    CodecName(string name)
+        : _codec_name(std::move(name)) { }
+    CodecName(enum AVCodecID id)
+        : _id(id) { }
 
     template <bool decoder>
     const AVCodec *getCodec() const {
@@ -322,7 +321,7 @@ static inline const AVCodec *getCodec(const std::initializer_list<CodecName> &co
     return ret;
 }
 
-template<bool decoder = true>
+template <bool decoder = true>
 static inline const AVCodec *getCodecByName(const std::vector<std::string> &codec_list) {
     const AVCodec *ret = nullptr;
     for (auto &codec : codec_list) {
@@ -344,68 +343,68 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
     }
     switch (track->getCodecId()) {
         case CodecH264:
-            codec_default = getCodec({AV_CODEC_ID_H264});
+            codec_default = getCodec({ AV_CODEC_ID_H264 });
             if (codec && codec->id == AV_CODEC_ID_H264) {
                 break;
             }
             if (checkIfSupportedNvidia()) {
-                codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_cuvid"}, {"h264_nvmpi"}});
+                codec = getCodec({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_cuvid" }, { "h264_nvmpi" } });
             } else {
-                codec = getCodec({{"libopenh264"}, {AV_CODEC_ID_H264}, {"h264_qsv"}, {"h264_videotoolbox"}, {"h264_nvmpi"}});
+                codec = getCodec({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_nvmpi" } });
             }
             break;
         case CodecH265:
-            codec_default = getCodec({AV_CODEC_ID_HEVC});
+            codec_default = getCodec({ AV_CODEC_ID_HEVC });
             if (codec && codec->id == AV_CODEC_ID_HEVC) {
                 break;
             }
             if (checkIfSupportedNvidia()) {
-                codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_cuvid"}, {"hevc_nvmpi"}});
+                codec = getCodec({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_cuvid" }, { "hevc_nvmpi" } });
             } else {
-                codec = getCodec({{AV_CODEC_ID_HEVC}, {"hevc_qsv"}, {"hevc_videotoolbox"}, {"hevc_nvmpi"}});
+                codec = getCodec({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_nvmpi" } });
             }
             break;
         case CodecAAC:
             if (codec && codec->id == AV_CODEC_ID_AAC) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_AAC});
+            codec = getCodec({ AV_CODEC_ID_AAC });
             break;
         case CodecG711A:
             if (codec && codec->id == AV_CODEC_ID_PCM_ALAW) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_PCM_ALAW});
+            codec = getCodec({ AV_CODEC_ID_PCM_ALAW });
             break;
         case CodecG711U:
             if (codec && codec->id == AV_CODEC_ID_PCM_MULAW) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_PCM_MULAW});
+            codec = getCodec({ AV_CODEC_ID_PCM_MULAW });
             break;
         case CodecOpus:
             if (codec && codec->id == AV_CODEC_ID_OPUS) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_OPUS});
+            codec = getCodec({ AV_CODEC_ID_OPUS });
             break;
         case CodecJPEG:
             if (codec && codec->id == AV_CODEC_ID_MJPEG) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_MJPEG});
+            codec = getCodec({ AV_CODEC_ID_MJPEG });
             break;
         case CodecVP8:
             if (codec && codec->id == AV_CODEC_ID_VP8) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_VP8});
+            codec = getCodec({ AV_CODEC_ID_VP8 });
             break;
         case CodecVP9:
             if (codec && codec->id == AV_CODEC_ID_VP9) {
                 break;
             }
-            codec = getCodec({AV_CODEC_ID_VP9});
+            codec = getCodec({ AV_CODEC_ID_VP9 });
             break;
         default: codec = nullptr; break;
     }
@@ -416,9 +415,7 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
     }
 
     while (true) {
-        _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) {
-            avcodec_free_context(&ctx);
-        });
+        _context.reset(avcodec_alloc_context3(codec), [](AVCodecContext *ctx) { avcodec_free_context(&ctx); });
 
         if (!_context) {
             throw std::runtime_error("创建解码器失败");
@@ -432,22 +429,25 @@ FFmpegDecoder::FFmpegDecoder(const Track::Ptr &track, int thread_num, const std:
         _context->flags |= AV_CODEC_FLAG_LOW_DELAY;
         _context->flags2 |= AV_CODEC_FLAG2_FAST;
         if (track->getTrackType() == TrackVideo) {
-            auto video = static_pointer_cast<VideoTrack>(track);
-            _context->width = video->getVideoWidth();
-            _context->height = video->getVideoHeight();
-            InfoL << "decode video " << video->getCodecName() << " " << _context->width << "x" << _context->height;
-        } else {
-            auto audio = static_pointer_cast<AudioTrack>(track);
-            InfoL << "decode audio " << audio->getCodecName() << " " << audio->getAudioSampleRate() << "x" << audio->getAudioChannel();
-            switch (track->getCodecId()) {
-                case CodecG711A:
-                case CodecG711U: {
-                    _context->channels = audio->getAudioChannel();
-                    _context->sample_rate = audio->getAudioSampleRate();
-                    _context->channel_layout = av_get_default_channel_layout(_context->channels);
-                    break;
-                }
-                default: break;
+            _context->width = static_pointer_cast<VideoTrack>(track)->getVideoWidth();
+            _context->height = static_pointer_cast<VideoTrack>(track)->getVideoHeight();
+            InfoL << "media source :" << _context->width << " X " << _context->height;
+        }
+
+        switch (track->getCodecId()) {
+            case CodecG711A:
+            case CodecG711U: {
+                AudioTrack::Ptr audio = static_pointer_cast<AudioTrack>(track);
+
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+                av_channel_layout_default(&_context->ch_layout, audio->getAudioChannel());
+#else
+                _context->channels = audio->getAudioChannel();
+                _context->channel_layout = av_get_default_channel_layout(_context->channels);
+#endif
+
+                _context->sample_rate = audio->getAudioSampleRate();
+                break;
             }
         }
         AVDictionary *dict = nullptr;
@@ -600,7 +600,6 @@ void FFmpegDecoder::onDecode(const FFmpegFrame::Ptr &frame) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 FFmpegAudioFifo::~FFmpegAudioFifo() {
     if (_fifo) {
         av_audio_fifo_free(_fifo);
@@ -614,15 +613,20 @@ int FFmpegAudioFifo::size() const {
 
 bool FFmpegAudioFifo::Write(const AVFrame *frame) {
     _format = (AVSampleFormat)frame->format;
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    int channels = frame->ch_layout.nb_channels;
+#else
+    int channels = frame->channels;
+#endif
     if (!_fifo) {
-        _fifo = av_audio_fifo_alloc(_format, frame->channels, frame->nb_samples);
+        _fifo = av_audio_fifo_alloc(_format, channels, frame->nb_samples);
         if (!_fifo) {
-            WarnL << "av_audio_fifo_alloc " << frame->channels << "x" << frame->nb_samples << "error";
+            WarnL << "av_audio_fifo_alloc " << channels << "x" << frame->nb_samples << "error";
             return false;
         }
     }
 
-    _channels = frame->channels;
+    _channels = channels;
     if (_samplerate != frame->sample_rate) {
         _samplerate = frame->sample_rate;
         // 假定传入frame的时间戳是以ms为单位的
@@ -654,14 +658,18 @@ bool FFmpegAudioFifo::Read(AVFrame *frame, int sample_size) {
     av_samples_get_buffer_size(frame->linesize, _channels, sample_size, _format, 0);
     frame->nb_samples = sample_size;
     frame->format = _format;
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+    av_channel_layout_default(&frame->ch_layout, _channels);
+#else
     frame->channel_layout = av_get_default_channel_layout(_channels);
+    frame->channels = _channels;
+#endif
     frame->sample_rate = _samplerate;
     if (fabs(_tsp) > DBL_EPSILON) {
         frame->pts = _tsp;
         // advance tsp by sample_size
         _tsp += sample_size * _timebase;
-    }
-    else {
+    } else {
         frame->pts = AV_NOPTS_VALUE;
     }
 
@@ -720,18 +728,16 @@ FFmpegFrame::Ptr FFmpegSwr::inputFrame(const FFmpegFrame::Ptr &frame) {
 
 #if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
         _ctx = swr_alloc();
-        swr_alloc_set_opts2(&_ctx, 
-                    &_target_ch_layout, _target_format, _target_samplerate, 
-                    &frame->get()->ch_layout, (AVSampleFormat)frame->get()->format, frame->get()->sample_rate,
-                     0, nullptr);
+        swr_alloc_set_opts2(
+            &_ctx, &_target_ch_layout, _target_format, _target_samplerate, &frame->get()->ch_layout, (AVSampleFormat)frame->get()->format,
+            frame->get()->sample_rate, 0, nullptr);
 #else
-        _ctx = swr_alloc_set_opts(nullptr, _target_channel_layout, _target_format, _target_samplerate,
-                                  frame->get()->channel_layout, (AVSampleFormat) frame->get()->format,
-                                  frame->get()->sample_rate, 0, nullptr);
+        _ctx = swr_alloc_set_opts(
+            nullptr, _target_channel_layout, _target_format, _target_samplerate, frame->get()->channel_layout, (AVSampleFormat)frame->get()->format,
+            frame->get()->sample_rate, 0, nullptr);
 #endif
 
-        InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat) frame->get()->format) << " -> "
-              << av_get_sample_fmt_name(_target_format);
+        InfoL << "swr_alloc_set_opts:" << av_get_sample_fmt_name((enum AVSampleFormat)frame->get()->format) << " -> " << av_get_sample_fmt_name(_target_format);
     }
     if (_ctx) {
         auto out = _swr_frame_pool.obtain2();
@@ -805,11 +811,13 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
         _ctx = nullptr;
     }
     if (!_ctx) {
-        _src_format = (enum AVPixelFormat) frame->get()->format;
+        _src_format = (enum AVPixelFormat)frame->get()->format;
         _src_width = frame->get()->width;
         _src_height = frame->get()->height;
-        _ctx = sws_getContext(frame->get()->width, frame->get()->height, (enum AVPixelFormat) frame->get()->format, target_width, target_height, _target_format, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-        InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat) frame->get()->format) << " -> " << av_get_pix_fmt_name(_target_format);
+        _ctx = sws_getContext(
+            frame->get()->width, frame->get()->height, (enum AVPixelFormat)frame->get()->format, target_width, target_height, _target_format, SWS_FAST_BILINEAR,
+            NULL, NULL, NULL);
+        InfoL << "sws_getContext:" << av_get_pix_fmt_name((enum AVPixelFormat)frame->get()->format) << " -> " << av_get_pix_fmt_name(_target_format);
     }
     if (_ctx) {
         auto out = _sws_frame_pool.obtain2();
@@ -836,14 +844,15 @@ FFmpegFrame::Ptr FFmpegSws::inputFrame(const FFmpegFrame::Ptr &frame, int &ret, 
     return nullptr;
 }
 
-std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt, int w, int h, const char *font_path) {
+std::tuple<bool, std::string>
+FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &frame, const char *filename, AVPixelFormat fmt, int w, int h, const char *font_path) {
     std::shared_ptr<AVFilterGraph> _filter_graph;
     AVFilterContext *buffersrc_ctx = nullptr;
     AVFilterContext *buffersink_ctx = nullptr;
     const AVFilter *buffersrc = nullptr;
     const AVFilter *buffersink = nullptr;
     // kServerName
-    const string mark = "ZLMediaKit"; 
+    const string mark = "ZLMediaKit";
     char drawtext_args1[512];
     _StrPrinter ss;
 
@@ -867,7 +876,9 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         fontfile = exeDir() + "/DejaVuSans.ttf";
     }
 
-    snprintf(drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(), fontfile.c_str());
+    snprintf(
+        drawtext_args1, sizeof(drawtext_args1), "text='%s':fontfile='%s':fontcolor=white@0.1:fontsize=h/50:x=w*0.02:y=h-th-h*0.02", mark.data(),
+        fontfile.c_str());
 
     const AVCodec *jpeg_codec = avcodec_find_encoder(fmt == AV_PIX_FMT_YUVJ420P ? AV_CODEC_ID_MJPEG : AV_CODEC_ID_PNG);
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> jpeg_codec_ctx(
@@ -934,7 +945,7 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
         return make_tuple<bool, std::string>(false, ss.data());
     }
 
-    if ((ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0))< 0) {
+    if ((ret = avfilter_link(buffersrc_ctx, 0, drawtext_ctx1, 0) < 0 || avfilter_link(drawtext_ctx1, 0, buffersink_ctx, 0)) < 0) {
         ss << "avfilter_link: " << ret << " " << ffmpeg_err(ret);
         return make_tuple<bool, std::string>(false, ss.data());
     }
@@ -959,10 +970,9 @@ std::tuple<bool, std::string> FFmpegUtils::saveFrame(const FFmpegFrame::Ptr &fra
     }
     return make_tuple<bool, std::string>(true, "");
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void setupContext(AVCodecContext *_context, int bitrate) {
-    //保存AVFrame的引用
+    // 保存AVFrame的引用
 #ifdef FF_API_OLD_ENCDEC
     _context->refcounted_frames = 1;
 #endif
@@ -980,47 +990,30 @@ FFmpegEncoder::FFmpegEncoder(const Track::Ptr &track, int thread_num) {
     const AVCodec *codec_default = nullptr;
     _codecId = track->getCodecId();
     switch (_codecId) {
-    case CodecH264:
-        codec_default = getCodec<false>({ AV_CODEC_ID_H264 });
-        if (checkIfSupportedNvidia()) {
-            codec = getCodec<false>({ { "libopenh264" },
-                                      { AV_CODEC_ID_H264 },
-                                      { "h264_qsv" },
-                                      { "h264_videotoolbox" },
-                                      { "h264_cuvid" },
-                                      { "h264_nvmpi" } });
-        } else {
-            codec = getCodec<false>({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_nvmpi" } });
-        }
-        break;
-    case CodecH265:
-        codec_default = getCodec<false>({ AV_CODEC_ID_HEVC });
-        if (checkIfSupportedNvidia()) {
-            codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_cuvid" }, { "hevc_nvmpi" } });
-        } else {
-            codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_nvmpi" } });
-        }
-        break;
-    case CodecAAC:
-        codec = getCodec<false>({ AV_CODEC_ID_AAC });
-        break;
-    case CodecG711A:
-        codec = getCodec<false>({ AV_CODEC_ID_PCM_ALAW });
-        break;
-    case CodecG711U:
-        codec = getCodec<false>({ AV_CODEC_ID_PCM_MULAW });
-        break;
-    case CodecOpus:
-        codec = getCodec<false>({ AV_CODEC_ID_OPUS });
-        break;
-    case CodecVP8:
-        codec = getCodec<false>({ AV_CODEC_ID_VP8 });
-        break;
-    case CodecVP9:
-        codec = getCodec<false>({ AV_CODEC_ID_VP9 });
-        break;
-    default:
-        break;
+        case CodecH264:
+            codec_default = getCodec<false>({ AV_CODEC_ID_H264 });
+            if (checkIfSupportedNvidia()) {
+                codec
+                    = getCodec<false>({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_cuvid" }, { "h264_nvmpi" } });
+            } else {
+                codec = getCodec<false>({ { "libopenh264" }, { AV_CODEC_ID_H264 }, { "h264_qsv" }, { "h264_videotoolbox" }, { "h264_nvmpi" } });
+            }
+            break;
+        case CodecH265:
+            codec_default = getCodec<false>({ AV_CODEC_ID_HEVC });
+            if (checkIfSupportedNvidia()) {
+                codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_cuvid" }, { "hevc_nvmpi" } });
+            } else {
+                codec = getCodec<false>({ { AV_CODEC_ID_HEVC }, { "hevc_qsv" }, { "hevc_videotoolbox" }, { "hevc_nvmpi" } });
+            }
+            break;
+        case CodecAAC: codec = getCodec<false>({ AV_CODEC_ID_AAC }); break;
+        case CodecG711A: codec = getCodec<false>({ AV_CODEC_ID_PCM_ALAW }); break;
+        case CodecG711U: codec = getCodec<false>({ AV_CODEC_ID_PCM_MULAW }); break;
+        case CodecOpus: codec = getCodec<false>({ AV_CODEC_ID_OPUS }); break;
+        case CodecVP8: codec = getCodec<false>({ AV_CODEC_ID_VP8 }); break;
+        case CodecVP9: codec = getCodec<false>({ AV_CODEC_ID_VP9 }); break;
+        default: break;
     }
 
     if (!codec) {
@@ -1052,7 +1045,7 @@ FFmpegEncoder::FFmpegEncoder(const Track::Ptr &track, int thread_num) {
 
         if (ret) {
             _codec = codec;
-            //成功
+            // 成功
             InfoL << "打开编码器成功:" << codec->name << ", frameSize " << _context->frame_size;
             // we do not send complete frames, check this
             if (getTrackType() == TrackAudio) {
@@ -1065,9 +1058,8 @@ FFmpegEncoder::FFmpegEncoder(const Track::Ptr &track, int thread_num) {
         }
 
         if (codec_default && codec_default != codec) {
-            //硬件编解码器打开失败，尝试软件的
-            WarnL << "打开编码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开编码器"
-                  << codec_default->name;
+            // 硬件编解码器打开失败，尝试软件的
+            WarnL << "打开编码器" << codec->name << "失败，原因是:" << ffmpeg_err(ret) << ", 再尝试打开编码器" << codec_default->name;
             codec = codec_default;
             continue;
         }
@@ -1112,17 +1104,20 @@ bool FFmpegEncoder::openAudioCodec(int samplerate, int channel, int bitrate, con
 
         _context->sample_fmt = codec->sample_fmts[0];
         _context->sample_rate = samplerate;
+#if LIBAVCODEC_VERSION_INT >= FF_CODEC_VER_7_1
+        av_channel_layout_default(&_context->ch_layout, channel);
+        _swr.reset(new FFmpegSwr(_context->sample_fmt, &_context->ch_layout, _context->sample_rate));
+#else
         _context->channels = channel;
         _context->channel_layout = av_get_default_channel_layout(_context->channels);
+        _swr.reset(new FFmpegSwr(_context->sample_fmt, _context->channels, _context->channel_layout, _context->sample_rate));
+#endif
 
         if (getCodecId() == CodecOpus)
             _context->compression_level = 1;
 
         //_sample_bytes = av_get_bytes_per_sample(_context->sample_fmt) * _context->channels;
-        _swr.reset(
-            new FFmpegSwr(_context->sample_fmt, _context->channels, _context->channel_layout, _context->sample_rate));
-
-        InfoL << "openAudioCodec " << codec->name << " " << _context->sample_rate << "x" << _context->channels;
+        InfoL << "openAudioCodec " << codec->name << " " << _context->sample_rate << "x" << channel;
         return avcodec_open2(_context.get(), codec, &_dict) >= 0;
     }
     return false;
@@ -1149,7 +1144,7 @@ void FFmpegEncoder::flush() {
 
 bool FFmpegEncoder::inputFrame(const FFmpegFrame::Ptr &frame, bool async) {
     if (async && !TaskManager::isEnabled() && getContext()->codec_type == AVMEDIA_TYPE_VIDEO) {
-        //开启异步编码，且为视频，尝试启动异步解码线程
+        // 开启异步编码，且为视频，尝试启动异步解码线程
         startThread("encoder thread");
     }
 
@@ -1177,7 +1172,7 @@ bool FFmpegEncoder::inputFrame_l(FFmpegFrame::Ptr input) {
                 _fifo->Write(frame);
                 while (1) {
                     FFmpegFrame audio_frame;
-                    if (!_fifo->Read(audio_frame.get(), _context->frame_size)){
+                    if (!_fifo->Read(audio_frame.get(), _context->frame_size)) {
                         break;
                     }
                     if (!encodeFrame(audio_frame.get())) {
@@ -1238,12 +1233,12 @@ void FFmpegEncoder::onEncode(AVPacket *packet) {
             auto cfg = std::string((const char *)_context->extradata, _context->extradata_size);
             dumpAacConfig(cfg, packet->size, adts, ADTS_HEADER_LEN);
             frame->_prefix_size = ADTS_HEADER_LEN;
-            frame->_buffer.append((char*)adts, ADTS_HEADER_LEN);
+            frame->_buffer.append((char *)adts, ADTS_HEADER_LEN);
         }
         frame->_buffer.append((const char *)packet->data, packet->size);
         _cb(frame);
     } else {
-        _cb(Factory::getFrameFromPtr(_codecId, (const char*)packet->data, packet->size, packet->dts, packet->pts));
+        _cb(Factory::getFrameFromPtr(_codecId, (const char *)packet->data, packet->size, packet->dts, packet->pts));
     }
 }
 
