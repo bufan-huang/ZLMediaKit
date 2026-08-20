@@ -61,6 +61,7 @@ const string kBroadcastMediaChanged = "kBroadcastMediaChanged";
 const string kBroadcastRecordMP4 = "kBroadcastRecordMP4";
 const string kBroadcastRecordTs = "kBroadcastRecordTs";
 const string kBroadcastHttpRequest = "kBroadcastHttpRequest";
+const string kBroadcastBeforeHttpRequest = "kBroadcastBeforeHttpRequest";
 const string kBroadcastHttpAccess = "kBroadcastHttpAccess";
 const string kBroadcastOnGetRtspRealm = "kBroadcastOnGetRtspRealm";
 const string kBroadcastOnRtspAuth = "kBroadcastOnRtspAuth";
@@ -81,6 +82,8 @@ const string kBroadcastRtcSctpClosed = "kBroadcastRtcSctpClosed";
 const string kBroadcastRtcSctpSend = "kBroadcastRtcSctpSend";
 const string kBroadcastRtcSctpReceived = "kBroadcastRtcSctpReceived";
 const string kBroadcastPlayerCountChanged = "kBroadcastPlayerCountChanged";
+const string kBroadcastPlayerProxyFailed = "kBroadcastPlayerProxyFailed";
+const string kBroadcastCreateMuxer = "kBroadcastCreateMuxer";
 
 } // namespace Broadcast
 
@@ -197,6 +200,7 @@ namespace Http {
 #define HTTP_FIELD "http."
 const string kSendBufSize = HTTP_FIELD "sendBufSize";
 const string kMaxReqSize = HTTP_FIELD "maxReqSize";
+const string kMaxUploadSize = HTTP_FIELD "maxUploadSize";
 const string kKeepAliveSecond = HTTP_FIELD "keepAliveSecond";
 const string kCharSet = HTTP_FIELD "charSet";
 const string kRootPath = HTTP_FIELD "rootPath";
@@ -211,6 +215,7 @@ const string kAllowIPRange = HTTP_FIELD "allow_ip_range";
 static onceToken token([]() {
     mINI::Instance()[kSendBufSize] = 64 * 1024;
     mINI::Instance()[kMaxReqSize] = 4 * 10240;
+    mINI::Instance()[kMaxUploadSize] = 1024ULL * 1024 * 1024;
     mINI::Instance()[kKeepAliveSecond] = 15;
     mINI::Instance()[kDirMenu] = true;
     mINI::Instance()[kVirtualPath] = "";
@@ -362,6 +367,7 @@ const string kFileBufSize = HLS_FIELD "fileBufSize";
 const string kBroadcastRecordTs = HLS_FIELD "broadcastRecordTs";
 const string kDeleteDelaySec = HLS_FIELD "deleteDelaySec";
 const string kFastRegister = HLS_FIELD "fastRegister";
+const string kFmp4SegExt = HLS_FIELD "fmp4SegExt";
 
 static onceToken token([]() {
     mINI::Instance()[kSegmentDuration] = 2;
@@ -373,6 +379,7 @@ static onceToken token([]() {
     mINI::Instance()[kBroadcastRecordTs] = false;
     mINI::Instance()[kDeleteDelaySec] = 10;
     mINI::Instance()[kFastRegister] = false;
+    mINI::Instance()[kFmp4SegExt] = ".mp4";
 });
 } // namespace Hls
 
@@ -422,6 +429,7 @@ const string kWaitTrackReady = "wait_track_ready";
 const string kPlayTrack = "play_track";
 const string kProxyUrl = "proxy_url";
 const string kRtspSpeed = "rtsp_speed";
+const string kSchema = "schema";
 const string kLatency = "latency";
 const string kPassPhrase = "passPhrase";
 const string kCustomHeader = "custom_header";

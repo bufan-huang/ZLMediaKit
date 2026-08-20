@@ -11,21 +11,20 @@
 #ifndef ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
 
-#include "RtspMuxer.h"
 #include "Rtsp/RtspMediaSource.h"
+#include "RtspMuxer.h"
 
 namespace mediakit {
 
-class RtspMediaSourceMuxer : public RtspMuxer, public MediaSourceEventInterceptor,
-                                   public std::enable_shared_from_this<RtspMediaSourceMuxer> {
+class RtspMediaSourceMuxer
+    : public RtspMuxer
+    , public MediaSourceEventInterceptor
+    , public std::enable_shared_from_this<RtspMediaSourceMuxer> {
 public:
     using Ptr = std::shared_ptr<RtspMediaSourceMuxer>;
 
-    RtspMediaSourceMuxer(const MediaTuple& tuple,
-                         const ProtocolOption &option,
-                         const TitleSdp::Ptr &title = nullptr,
-                         const std::string &schema = RTSP_SCHEMA
-                         ): RtspMuxer(title) {
+    RtspMediaSourceMuxer(const MediaTuple &tuple, const ProtocolOption &option, const TitleSdp::Ptr &title = nullptr, const std::string &schema = RTSP_SCHEMA)
+        : RtspMuxer(title) {
         _option = option;
         _on_demand = schema == RTSP_SCHEMA ? option.rtsp_demand : option.rtc_demand;
         _media_src = std::make_shared<RtspMediaSource>(tuple, schema);
@@ -40,18 +39,14 @@ public:
         }
     }
 
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener){
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
         setDelegate(listener);
         _media_src->setListener(shared_from_this());
     }
 
-    int readerCount() const{
-        return _media_src->readerCount();
-    }
+    int readerCount() const { return _media_src->readerCount(); }
 
-    void setTimeStamp(uint32_t stamp){
-        _media_src->setTimeStamp(stamp);
-    }
+    void setTimeStamp(uint32_t stamp) { _media_src->setTimeStamp(stamp); }
 
     void addTrackCompleted() override {
         RtspMuxer::addTrackCompleted();
@@ -91,6 +86,5 @@ protected:
     RtspMediaSource::Ptr _media_src;
 };
 
-
-}//namespace mediakit
-#endif //ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
+} // namespace mediakit
+#endif // ZLMEDIAKIT_RTSPMEDIASOURCEMUXER_H
