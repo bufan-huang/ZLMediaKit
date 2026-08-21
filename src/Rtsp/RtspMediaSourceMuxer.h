@@ -46,8 +46,6 @@ public:
 
     int readerCount() const { return _media_src->readerCount(); }
 
-    void setTimeStamp(uint32_t stamp) { _media_src->setTimeStamp(stamp); }
-
     void addTrackCompleted() override {
         RtspMuxer::addTrackCompleted();
         _media_src->setSdp(getSdp());
