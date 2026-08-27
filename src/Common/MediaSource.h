@@ -300,9 +300,7 @@ public:
     XX(enable_rtmp)                                                                                                                                            \
     XX(enable_ts)                                                                                                                                              \
     XX(enable_fmp4)                                                                                                                                            \
-    XX(enable_rtc)                                                                                                                                             \
-    XX(audio_transcode)                                                                                                                                        \
-    XX(rtc_demand)                                                                                                                                             \
+                                                                                                                                                               \
     XX(hls_demand)                                                                                                                                             \
     XX(rtsp_demand)                                                                                                                                            \
     XX(rtmp_demand)                                                                                                                                            \
@@ -325,18 +323,38 @@ public:
 
     template <typename MAP>
     void load(const MAP &allArgs) {
-#define GET(key) getArgsValue(allArgs, #key, key);
-        OPT_VALUE(GET)
-#undef GET
-    }
+#define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
+        GET_OPT_VALUE(modify_stamp);
+        GET_OPT_VALUE(enable_audio);
+        GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(auto_close);
+        GET_OPT_VALUE(continue_push_ms);
+        GET_OPT_VALUE(paced_sender_ms);
 
-    template <typename MAP>
-    MAP as() {
-        MAP ret;
-#define SET(key) ret[#key] = key;
-        OPT_VALUE(SET)
-#undef SET
-        return ret;
+        GET_OPT_VALUE(enable_hls);
+        GET_OPT_VALUE(enable_hls_fmp4);
+        GET_OPT_VALUE(enable_mp4);
+        GET_OPT_VALUE(enable_rtsp);
+        GET_OPT_VALUE(enable_rtmp);
+        GET_OPT_VALUE(enable_ts);
+        GET_OPT_VALUE(enable_fmp4);
+        GET_OPT_VALUE(enable_rtc);
+        GET_OPT_VALUE(audio_transcode);
+        GET_OPT_VALUE(rtc_demand);
+
+        GET_OPT_VALUE(hls_demand);
+        GET_OPT_VALUE(rtsp_demand);
+        GET_OPT_VALUE(rtmp_demand);
+        GET_OPT_VALUE(ts_demand);
+        GET_OPT_VALUE(fmp4_demand);
+
+        GET_OPT_VALUE(mp4_max_second);
+        GET_OPT_VALUE(mp4_as_player);
+        GET_OPT_VALUE(mp4_save_path);
+
+        GET_OPT_VALUE(hls_save_path);
+        GET_OPT_VALUE(stream_replace);
+        GET_OPT_VALUE(max_track);
     }
 };
 

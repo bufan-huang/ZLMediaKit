@@ -11,18 +11,18 @@
 #ifndef ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 #define ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
 
-#include "Common/MediaSink.h"
-#include "Common/MediaSource.h"
 #include "Common/Stamp.h"
-#include "FMP4/FMP4MediaSourceMuxer.h"
-#include "Record/HlsMediaSource.h"
-#include "Record/HlsRecorder.h"
+#include "Common/MediaSource.h"
+#include "Common/MediaSink.h"
 #include "Record/Recorder.h"
-#include "Rtmp/RtmpMediaSourceMuxer.h"
-#include "Rtp/RtpSender.h"
-#include "Rtsp/RtspMediaSourceMuxer.h"
-#include "TS/TSMediaSourceMuxer.h"
 #include "Util/RingBuffer.h"
+#include "Rtp/RtpSender.h"
+#include "Record/HlsRecorder.h"
+#include "Record/HlsMediaSource.h"
+#include "Rtsp/RtspMediaSourceMuxer.h"
+#include "Rtmp/RtmpMediaSourceMuxer.h"
+#include "TS/TSMediaSourceMuxer.h"
+#include "FMP4/FMP4MediaSourceMuxer.h"
 
 namespace mediakit {
 
@@ -38,11 +38,7 @@ struct FrameInfo {
     bool config_frame = false;
 };
 
-class MultiMediaSourceMuxer
-    : public MediaSourceEventInterceptor
-    , public MediaSink
-    , public toolkit::noncopyable
-    , public std::enable_shared_from_this<MultiMediaSourceMuxer> {
+class MultiMediaSourceMuxer : public MediaSourceEventInterceptor, public MediaSink, public toolkit::noncopyable, public std::enable_shared_from_this<MultiMediaSourceMuxer>{
 public:
     using Ptr = std::shared_ptr<MultiMediaSourceMuxer>;
     using RingType = toolkit::RingBuffer<Frame::Ptr>;
@@ -54,32 +50,32 @@ public:
         virtual void onAllTrackReady() = 0;
     };
 
-    MultiMediaSourceMuxer(const MediaTuple &tuple, float dur_sec = 0.0, const ProtocolOption &option = ProtocolOption());
+    MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec = 0.0,const ProtocolOption &option = ProtocolOption());
 
     /**
      * 设置事件监听器
      * @param listener 监听器
      * Set event listener
      * @param listener Listener
-
+     
      * [AUTO-TRANSLATED:d829419b]
      */
     void setMediaListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
-    /**
-     * 设置Track就绪事件监听器
-     * @param listener 事件监听器
-     * Set Track ready event listener
-     * @param listener Event listener
-
-     * [AUTO-TRANSLATED:64262ac5]
-    */
+     /**
+      * 设置Track就绪事件监听器
+      * @param listener 事件监听器
+      * Set Track ready event listener
+      * @param listener Event listener
+      
+      * [AUTO-TRANSLATED:64262ac5]
+     */
     void setTrackListener(const std::weak_ptr<Listener> &listener);
 
     /**
      * 返回总的消费者个数
      * Return the total number of consumers
-
+     
      * [AUTO-TRANSLATED:5eaac131]
      */
     int totalReaderCount() const;
@@ -87,7 +83,7 @@ public:
     /**
      * 判断是否生效(是否正在转其他协议)
      * Determine whether it is effective (whether it is being converted to another protocol)
-
+     
      * [AUTO-TRANSLATED:ca92165c]
      */
     bool isEnabled();
@@ -95,7 +91,7 @@ public:
     /**
      * 重置track
      * Reset track
-
+     
      * [AUTO-TRANSLATED:95dc0b4f]
      */
     void resetTracks() override;
@@ -109,7 +105,7 @@ public:
      * Total number of viewers
      * @param sender Event sender
      * @return Total number of viewers
-
+     
      * [AUTO-TRANSLATED:f4d7146c]
      */
     int totalReaderCount(MediaSource &sender) override;
@@ -125,7 +121,7 @@ public:
      * @param start Start or stop
      * @param custom_path Specify a custom path when recording is enabled
      * @return Whether the setting is successful
-
+     
      * [AUTO-TRANSLATED:cb1fd8a9]
      */
     bool setupRecord(MediaSource &sender, Recorder::type type, bool start, const std::string &custom_path, size_t max_second);
@@ -146,7 +142,7 @@ public:
      * Get recording status
      * @param type Recording type
      * @return Recording status
-
+     
      * [AUTO-TRANSLATED:798afa71]
      */
     bool isRecording(Recorder::type type);
@@ -162,7 +158,7 @@ public:
      * @return 是否成功
      * Stop ps-rtp sending
      * @return Whether it is successful
-
+     
      * [AUTO-TRANSLATED:b91e2055]
      */
     bool stopSendRtp(const std::string &ssrc);
@@ -170,11 +166,11 @@ public:
     /**
      * 获取所属线程
      * Get the thread it belongs to
-
+     
      * [AUTO-TRANSLATED:a4dc847e]
      */
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
-
+    
     /**
      * 关闭流
      * @return 是否成功
@@ -184,7 +180,7 @@ public:
     /**
      * 获取本对象
      * Get this object
-
+     
      * [AUTO-TRANSLATED:5e119bb3]
      */
     std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) const override;
@@ -211,15 +207,15 @@ protected:
      * A certain track is ready, its ready() status returns true,
      * This means that you can get information such as sps pps, etc.
      * @param track
-
+     
      * [AUTO-TRANSLATED:05659d48]
     */
-    bool onTrackReady(const Track::Ptr &track) override;
+    bool onTrackReady(const Track::Ptr & track) override;
 
     /**
      * 所有Track已经准备好，
      * All Tracks are ready,
-
+     
      * [AUTO-TRANSLATED:c54d02e2]
      */
     void onAllTrackReady() override;
@@ -229,7 +225,7 @@ protected:
      * @param frame
      * A certain Track outputs a frame, this method will be called after onAllTrackReady is triggered
      * @param frame
-
+     
      * [AUTO-TRANSLATED:debbd247]
      */
     bool onTrackFrame(const Frame::Ptr &frame) override;
@@ -270,5 +266,5 @@ private:
     toolkit::ObjectStatistic<MultiMediaSourceMuxer> _statistic;
 };
 
-} // namespace mediakit
-#endif // ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H
+}//namespace mediakit
+#endif //ZLMEDIAKIT_MULTIMEDIASOURCEMUXER_H

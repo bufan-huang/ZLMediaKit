@@ -101,7 +101,6 @@ static onceToken token([]() {
     mINI::Instance()[kMinBitrate] = 0;
 
     mINI::Instance()[kDataChannelEcho] = true;
-    mINI::Instance()[kTranscodeG711] = 0;
 
     mINI::Instance()[kSignalingPort] = 3000;
     mINI::Instance()[kSignalingSslPort] = 3001;
