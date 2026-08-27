@@ -45,6 +45,7 @@ namespace Rtc {
 extern const std::string kPort;
 extern const std::string kTcpPort;
 extern const std::string kTimeOutSec;
+extern const std::string kTranscodeG711;
 extern const std::string kSignalingPort;
 extern const std::string kSignalingSslPort;
 extern const std::string kIcePort;
